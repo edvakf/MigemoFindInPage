@@ -44,11 +44,11 @@ font.migemo-find-in-page-selected {
   height: 22px;
 }
 
-#migemo-find-in-page-search-bar.active {
+#migemo-find-in-page-search-bar.migemo-find-in-page-active {
   top: -1px;
 }
 
-#migemo-find-in-page-search-bar.inactive {
+#migemo-find-in-page-search-bar.migemo-find-in-page-inactive {
   top: -34px;
 }
 

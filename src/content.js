@@ -34,7 +34,7 @@ function show_searchbar() {
   } else {
     div = document.createElement('div');
     div.id = 'migemo-find-in-page-search-bar';
-    div.className = 'inactive' + ' ' + document.compatMode;
+    div.className = 'migemo-find-in-page-inactive' + ' ' + document.compatMode;
     var input = document.createElement('input');
     div.appendChild(input);
     var span = document.createElement('span');
@@ -43,7 +43,7 @@ function show_searchbar() {
     input.addEventListener('input', function() {start_search(input.value);}, false);
   }
   setTimeout(function() {// change class in another event, otherwise no transition occurs.
-    div.className = 'active' + ' ' + document.compatMode;
+    div.className = 'migemo-find-in-page-active' + ' ' + document.compatMode;
     setTimeout(function() { // focus after transition ends, otherwise unnessary scroll occurs.
       input.focus();
     }, 150);
@@ -53,7 +53,7 @@ function show_searchbar() {
 function hide_searchbar(e) {
   var div = document.getElementById('migemo-find-in-page-search-bar');
   if (div) {
-    div.className = 'inactive' + ' ' + document.compatMode;
+    div.className = 'migemo-find-in-page-inactive' + ' ' + document.compatMode;
     var input = div.querySelector('input');
     input.blur();
   }
