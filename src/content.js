@@ -93,14 +93,15 @@ function highlight() {
   var range = document.createRange();  // will be used to create DocumentFragment
   range.selectNodeContents(document.body);
   var n = 0;
-  var i = 0, tn;
+  var i = 0, tn, len;
   console.time('highlight');
   while (tn = textNodes.snapshotItem(i++)) {
     var texts = tn.nodeValue.split(re); // eg. 'abc'.split(/(b)/) => ['a', 'b', 'c']
-    if (texts.length === 1) continue; // textNode doesn't match the regexp
-    var html = '', j = 0, t;
-    while (t = texts[j]) {
-      html += (j++ % 2 && ++n) ? '<font class="migemo-find-in-page-found">' + htmlEscape(t) + '</font>' : htmlEscape(t);
+    if ((len = texts.length) === 1) continue; // textNode doesn't match the regexp
+    var html = '';
+    for (var j = 0; j < len; ++j) {
+      var t = htmlEscape(texts[j]);
+      html += (j % 2 && ++n) ? '<font class="migemo-find-in-page-found">' + t + '</font>' : t;
                       // increment n if regexp matches
     }
     var df = range.createContextualFragment(html);
