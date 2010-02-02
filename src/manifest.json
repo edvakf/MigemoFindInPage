@@ -1,0 +1,12 @@
+{
+  "name": "MigemoFindInPage",
+  "content_scripts": [ {
+     "js": [ "content.js" ],
+     "css": [ "content.css" ],
+     "matches": [ "http://*/*", "https://*/*" ],
+     "run_at": "document_end"
+  } ],
+  "description": "Find in page enhanced using Migemo",
+  "permissions": [ "http://*/*", "https://*/*" ],
+  "version": "0.0.1"
+}

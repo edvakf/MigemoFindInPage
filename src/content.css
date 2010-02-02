@@ -1,0 +1,111 @@
+font.migemo-find-in-page-found {
+  /* reset */
+  display: inline;
+
+  background-color: #ffff00;
+}
+
+font.migemo-find-in-page-selected {
+  background-color: #ff9632;
+}
+
+#migemo-find-in-page-search-bar {
+  /* reset */
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  vertical-align: baseline;
+  background: transparent;
+  line-height: 1;
+
+  background-color: #e8e8e8;
+  position: fixed;
+  /* right: 18px; this doesn't look good if there is no scroll bar */
+  left: 33px;
+  -webkit-transition: top 0.15s ease-out;
+  -webkit-border-bottom-right-radius: 6px;
+  -webkit-border-bottom-left-radius: 6px;
+  border: solid #8e8e8e 1px;
+  opacity: 0.8;
+  z-index: 2147483647;
+}
+
+#migemo-find-in-page-search-bar { /* CSS1Compat */
+  margin: 0;
+  width: 292px;
+  height: 30px;
+}
+
+#migemo-find-in-page-search-bar.BackCompat {
+  padding: 4px;
+  width: 284px;
+  height: 22px;
+}
+
+#migemo-find-in-page-search-bar.active {
+  top: -1px;
+}
+
+#migemo-find-in-page-search-bar.inactive {
+  top: -34px;
+}
+
+#migemo-find-in-page-search-bar input {
+  /* reset to WebKit default : http://trac.webkit.org/browser/trunk/WebCore/css/html.css */
+  letter-spacing: normal;
+  word-spacing: normal;
+  line-height: normal;
+  text-transform: none;
+  text-indent: 0;
+  text-shadow: none;
+  display: inline-block;
+  text-align: -webkit-auto;
+  -webkit-appearance: textfield;
+  background-color: white;
+  -webkit-rtl-ordering: logical;
+  -webkit-user-select: text;
+  cursor: auto;
+
+  border: 1px solid #c8c8c8;
+  font: -webkit-control;
+  padding-left: 2px;
+  padding-right: 90px; /* space for span */
+}
+
+#migemo-find-in-page-search-bar input { /* CSS1Compat */
+  margin: 4px;
+  width: 190px;
+  height: 18px;
+}
+
+#migemo-find-in-page-search-bar.BackCompat input {
+  margin: 0;
+  width: 284px;
+  height: 22px;
+}
+
+#migemo-find-in-page-search-bar span {
+  /* reset */
+  display: inline;
+  position: relative;
+
+  margin: 0;
+  padding: 0;
+  font: -webkit-control;
+  color: #777777;
+  height: 18px;
+}
+
+#migemo-find-in-page-search-bar span { /* CSS1Compat */
+  margin: 4px;
+  top: -23px;
+  left: 200px;
+}
+
+#migemo-find-in-page-search-bar.BackCompat span {
+  margin: 0;
+  top: -19px;
+  left: 200px;
+}
