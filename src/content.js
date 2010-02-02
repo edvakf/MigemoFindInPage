@@ -4,6 +4,7 @@
 if (document.contentType && !/html/i.test(document.contentType)) return;
 
 var MIGEMO_ID = 'pocnedlaincikkkcmlpcbipcflgjnjlj';
+var PREFIX = 'migemo-find-in-page-';
 var ACTIVATE_KEY = 191; // backslash
 var HIDE_KEY = 186; // semicolon
 var FIND_NEXT_KEY = 40; // down
@@ -29,13 +30,13 @@ window.addEventListener('keydown', function(e) {
 }, false);
 
 function show_searchbar() {
-  var div = document.getElementById('migemo-find-in-page-search-bar');
+  var div = document.getElementById(PREFIX + 'box');
   if (div) {
     var input = div.querySelector('input');
   } else {
     div = document.createElement('div');
-    div.id = 'migemo-find-in-page-search-bar';
-    div.className = 'migemo-find-in-page-inactive' + ' ' + document.compatMode;
+    div.id = PREFIX + 'box';
+    div.className = PREFIX + 'inactive' + ' ' + PREFIX + document.compatMode;
     var input = document.createElement('input');
     div.appendChild(input);
     var span = document.createElement('span');
@@ -44,7 +45,7 @@ function show_searchbar() {
     input.addEventListener('input', function() {start_search(input.value);}, false);
   }
   setTimeout(function() {// change class in another event, otherwise no transition occurs.
-    div.className = 'migemo-find-in-page-active' + ' ' + document.compatMode;
+    div.className = PREFIX + 'active' + ' ' + PREFIX + document.compatMode;
     setTimeout(function() { // focus after transition ends, otherwise unnessary scroll occurs.
       input.focus();
     }, 150);
@@ -52,9 +53,9 @@ function show_searchbar() {
 }
 
 function hide_searchbar(e) {
-  var div = document.getElementById('migemo-find-in-page-search-bar');
+  var div = document.getElementById(PREFIX + 'box');
   if (div) {
-    div.className = 'migemo-find-in-page-inactive' + ' ' + document.compatMode;
+    div.className = PREFIX + 'inactive' + ' ' + PREFIX + document.compatMode;
     var input = div.querySelector('input');
     input.blur();
   }
@@ -85,7 +86,7 @@ function start_search(q) {
   )
 }
 
-var XPATH = 'descendant::text()[string-length(normalize-space(self::text())) > 0 and not(ancestor::title or ancestor::textarea or ancestor::script or ancestor::style or ancestor::x:title or ancestor::x:textarea or ancestor::x:script or ancestor::x:style) and not(ancestor::*[1][contains(concat(" ",normalize-space(@class)," "), " migemo-find-in-page-found ")])]';
+var XPATH = 'descendant::text()[string-length(normalize-space(self::text())) > 0 and not(ancestor::title or ancestor::textarea or ancestor::script or ancestor::style or ancestor::x:title or ancestor::x:textarea or ancestor::x:script or ancestor::x:style) and not(ancestor::*[1][contains(concat(" ",normalize-space(@class)," "), " ' + PREFIX + 'found ")])]';
 var NSResolver = function() {return 'http://www.w3.org/1999/xhtml'};
 var expr = document.createExpression(XPATH, NSResolver);
 function highlight() {
@@ -101,7 +102,7 @@ function highlight() {
     var html = '';
     for (var j = 0; j < len; ++j) {
       var t = htmlEscape(texts[j]);
-      html += (j % 2 && ++n) ? '<font class="migemo-find-in-page-found">' + t + '</font>' : t;
+      html += (j % 2 && ++n) ? '<font class="' + PREFIX + 'found">' + t + '</font>' : t;
                       // increment n if regexp matches
     }
     var df = range.createContextualFragment(html);
@@ -115,8 +116,8 @@ function highlight() {
 function unhighlight(focus) {
   // if focus == true, select the "selected" text and focus the parent node (can only focus links though)
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
-  var highlights = document.querySelectorAll('font.migemo-find-in-page-found');
-  var selected = document.querySelector('font.migemo-find-in-page-selected');
+  var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
+  var selected = document.querySelector('font.' + PREFIX + 'selected');
   var i = 0, hl;
   while (hl = highlights[i++]) {
     if (hl !== selected) {
@@ -168,13 +169,13 @@ function select_first_on_screen() {
   var width = window.innerWidth;
   var height = window.innerHeight;
 
-  var highlights = document.querySelectorAll('font.migemo-find-in-page-found');
+  var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
   var i = 0, hl;
   while (hl = highlights[i++]) {
     if (!is_visible(hl)) continue;
     var rect = hl.getBoundingClientRect();
     if (rect.left >= 0 && rect.left < width && rect.top >= 0 && rect.top < height) {
-      hl.className += ' migemo-find-in-page-selected';
+      hl.className += ' ' + PREFIX + 'selected';
       pos = i;
       break;
     }
@@ -184,26 +185,26 @@ function select_first_on_screen() {
 
 var timeout = null;
 function cycle(n) {
-  var highlights = document.querySelectorAll('font.migemo-find-in-page-found');
+  var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
   var len = highlights.length;
   if (!len) return;
   var startpos = pos;
-  var selected = document.querySelector('font.migemo-find-in-page-selected');
+  var selected = document.querySelector('font.' + PREFIX + 'selected');
   var i = n > 0 ? 0 : len - 1;
   var hl;
   if (selected) {
     while (hl = highlights[i += n]) {
       if (hl === selected) break;
     }
-    selected.className = 'migemo-find-in-page-found';
+    selected.className = PREFIX + 'found';
   }
   hl = highlights[i = (i + n + len) % len];
-  hl.className += ' migemo-find-in-page-selected';
+  hl.className += ' ' + PREFIX + 'selected';
   pos = i % len || len;
   if (timeout) timeout = clearTimeout(timeout); // == undefined
   timeout = setTimeout(function() { // debouncing. leave visibility check till later
     timeout = null;
-    hl.className = 'migemo-find-in-page-found'; // remove migemo-find-in-page-selected class
+    hl.className = PREFIX + 'found'; // remove migemo-find-in-page-selected class
     while (!is_visible(hl)) {
       hl = highlights[i = (i + n + len) % len];
       pos = i % len || len;
@@ -214,7 +215,7 @@ function cycle(n) {
     }
     info(pos, total);
     if (pos) {
-      hl.className += ' migemo-find-in-page-selected';
+      hl.className += ' ' + PREFIX + 'selected';
       into_viewport(hl);
     }
   }, 20);
@@ -222,7 +223,7 @@ function cycle(n) {
 
 function info(pos, total) {
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
-  document.querySelector('#migemo-find-in-page-search-bar > span').textContent = pos + ' of ' + total;
+  document.querySelector('#' + PREFIX + 'box > span').textContent = pos + ' of ' + total;
   document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
 }
 

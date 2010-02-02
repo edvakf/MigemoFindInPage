@@ -9,7 +9,7 @@ font.migemo-find-in-page-selected {
   background-color: #ff9632;
 }
 
-#migemo-find-in-page-search-bar {
+#migemo-find-in-page-box {
   /* reset */
   display: block;
   margin: 0;
@@ -33,27 +33,27 @@ font.migemo-find-in-page-selected {
   z-index: 2147483647;
 }
 
-#migemo-find-in-page-search-bar { /* CSS1Compat */
+#migemo-find-in-page-box { /* CSS1Compat */
   margin: 0;
   width: 292px;
   height: 30px;
 }
 
-#migemo-find-in-page-search-bar.BackCompat {
+#migemo-find-in-page-box.migemo-find-in-page-BackCompat {
   padding: 4px;
   width: 284px;
   height: 22px;
 }
 
-#migemo-find-in-page-search-bar.migemo-find-in-page-active {
+#migemo-find-in-page-box.migemo-find-in-page-active {
   top: -1px;
 }
 
-#migemo-find-in-page-search-bar.migemo-find-in-page-inactive {
+#migemo-find-in-page-box.migemo-find-in-page-inactive {
   top: -34px;
 }
 
-#migemo-find-in-page-search-bar input {
+#migemo-find-in-page-box input {
   /* reset to WebKit default : http://trac.webkit.org/browser/trunk/WebCore/css/html.css */
   letter-spacing: normal;
   word-spacing: normal;
@@ -75,19 +75,19 @@ font.migemo-find-in-page-selected {
   padding-right: 90px; /* space for span */
 }
 
-#migemo-find-in-page-search-bar input { /* CSS1Compat */
+#migemo-find-in-page-box input { /* CSS1Compat */
   margin: 4px;
   width: 190px;
   height: 18px;
 }
 
-#migemo-find-in-page-search-bar.BackCompat input {
+#migemo-find-in-page-box.migemo-find-in-page-BackCompat input {
   margin: 0;
   width: 284px;
   height: 22px;
 }
 
-#migemo-find-in-page-search-bar span {
+#migemo-find-in-page-box span {
   /* reset */
   display: inline;
   position: relative;
@@ -99,13 +99,13 @@ font.migemo-find-in-page-selected {
   height: 18px;
 }
 
-#migemo-find-in-page-search-bar span { /* CSS1Compat */
+#migemo-find-in-page-box span { /* CSS1Compat */
   margin: 4px;
   top: -23px;
   left: 200px;
 }
 
-#migemo-find-in-page-search-bar.BackCompat span {
+#migemo-find-in-page-box.migemo-find-in-page-BackCompat span {
   margin: 0;
   top: -19px;
   left: 200px;
