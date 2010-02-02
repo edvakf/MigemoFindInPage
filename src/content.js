@@ -85,7 +85,7 @@ function start_search(q) {
   )
 }
 
-var XPATH = 'descendant::text()[string-length(normalize-space(self::text())) > 0 and not(ancestor::title or ancestor::textarea or ancestor::script or ancestor::style or ancestor::x:title or ancestor::x:textarea or ancestor::x:script or ancestor::x:style)]';
+var XPATH = 'descendant::text()[string-length(normalize-space(self::text())) > 0 and not(ancestor::title or ancestor::textarea or ancestor::script or ancestor::style or ancestor::x:title or ancestor::x:textarea or ancestor::x:script or ancestor::x:style) and not(ancestor::*[1][contains(concat(" ",normalize-space(@class)," "), " migemo-find-in-page-found ")])]';
 var NSResolver = function() {return 'http://www.w3.org/1999/xhtml'};
 var expr = document.createExpression(XPATH, NSResolver);
 function highlight() {
@@ -94,21 +94,25 @@ function highlight() {
   range.selectNodeContents(document.body);
   var n = 0;
   var i = 0, tn;
+  console.time('highlight');
   while (tn = textNodes.snapshotItem(i++)) {
     var texts = tn.nodeValue.split(re); // eg. 'abc'.split(/(b)/) => ['a', 'b', 'c']
     if (texts.length === 1) continue; // textNode doesn't match the regexp
-    var html = texts.map(function(t, j) {
-      // increment n if regexp matches
-      return (j % 2 && ++n) ? '<font class="migemo-find-in-page-found">' + htmlEscape(t) + '</font>' : htmlEscape(t);
-    }).join('');
+    var html = '', j = 0, t;
+    while (t = texts[j]) {
+      html += (j++ % 2 && ++n) ? '<font class="migemo-find-in-page-found">' + htmlEscape(t) + '</font>' : htmlEscape(t);
+                      // increment n if regexp matches
+    }
     var df = range.createContextualFragment(html);
     tn.parentNode.replaceChild(df, tn);
   }
+  console.timeEnd('highlight');
   total = n;
   document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
 }
 
 function unhighlight(focus) {
+  // if focus == true, select the "selected" text and focus the parent node (can only focus links though)
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
   var highlights = document.querySelectorAll('font.migemo-find-in-page-found');
   var selected = document.querySelector('font.migemo-find-in-page-selected');
@@ -154,18 +158,7 @@ function unhighlight(focus) {
 function node_inserted_handler(e) {
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
   setTimeout(function() {
-    var selected = document.querySelector('font.migemo-find-in-page-selected');
-    // dirty hack. remove class and re-add it later
-    if (selected) selected.className = '';
-    unhighlight();
     highlight();
-    if (!selected) return;
-    document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
-    // <font class=migemo-find-in-page-selected><font class=migemo-find-in-page-found>hogefuga</font></font>
-    // remove nest : <font class=migemo-find-in-page-selected>hogefuga</font>
-    selected.replaceChild(selected.firstChild.firstChild, selected.firstChild); 
-    selected.className = 'migemo-find-in-page-found migemo-find-in-page-selected';
-    document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
   }, 10);
 }
 
@@ -223,7 +216,7 @@ function cycle(n) {
       hl.className += ' migemo-find-in-page-selected';
       into_viewport(hl);
     }
-  }, 0);
+  }, 20);
 }
 
 function info(pos, total) {
