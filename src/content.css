@@ -19,6 +19,7 @@ font.migemo-find-in-page-selected {
   vertical-align: baseline;
   background: transparent;
   line-height: 1;
+  text-align: left;
 
   background-color: #e8e8e8;
   position: fixed;
