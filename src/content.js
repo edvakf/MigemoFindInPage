@@ -32,7 +32,7 @@ window.addEventListener('keydown', function(e) {
 function show_searchbar() {
   var div = document.getElementById(PREFIX + 'box');
   if (div) {
-    var input = div.querySelector('input');
+    var input = div.getElementsByTagName('input')[0];
   } else {
     div = document.createElement('div');
     div.id = PREFIX + 'box';
@@ -48,6 +48,8 @@ function show_searchbar() {
     div.className = PREFIX + 'active' + ' ' + PREFIX + document.compatMode;
     setTimeout(function() { // focus after transition ends, otherwise unnessary scroll occurs.
       input.focus();
+      input.select();
+      highlight();
     }, 150);
   }, 0);
 }
@@ -56,7 +58,7 @@ function hide_searchbar(e) {
   var div = document.getElementById(PREFIX + 'box');
   if (div) {
     div.className = PREFIX + 'inactive' + ' ' + PREFIX + document.compatMode;
-    var input = div.querySelector('input');
+    var input = div.getElementsByTagName('input')[0];
     input.blur();
   }
   unhighlight(true);
