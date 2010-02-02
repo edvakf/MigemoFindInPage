@@ -5,7 +5,7 @@ if (document.contentType && !/html/i.test(document.contentType)) return;
 
 var MIGEMO_ID = 'pocnedlaincikkkcmlpcbipcflgjnjlj';
 var ACTIVATE_KEY = 191; // backslash
-var HIDE_KEY = 187; // semicolon
+var HIDE_KEY = 186; // semicolon
 var FIND_NEXT_KEY = 40; // down
 var FIND_PREV_KEY = 38; // up
 window.addEventListener('keydown', function(e) {
@@ -17,6 +17,7 @@ window.addEventListener('keydown', function(e) {
         e.preventDefault();
         show_searchbar();
   } else if (e.keyCode === HIDE_KEY) {
+    e.preventDefault();
     hide_searchbar(); 
   } else if (e.keyCode === FIND_NEXT_KEY) {
     e.preventDefault();
