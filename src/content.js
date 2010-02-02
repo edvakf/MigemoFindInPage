@@ -5,7 +5,7 @@ if (document.contentType && !/html/i.test(document.contentType)) return;
 
 var MIGEMO_ID = 'pocnedlaincikkkcmlpcbipcflgjnjlj';
 var ACTIVATE_KEY = 191; // backslash
-var HIDE_KEY = 27; // esc
+var HIDE_KEY = 187; // semicolon
 var FIND_NEXT_KEY = 40; // down
 var FIND_PREV_KEY = 38; // up
 window.addEventListener('keydown', function(e) {
@@ -42,7 +42,6 @@ function show_searchbar() {
     document.body.appendChild(div);
     input.addEventListener('input', function() {start_search(input.value);}, false);
   }
-  input.value = query;
   setTimeout(function() {// change class in another event, otherwise no transition occurs.
     div.className = 'active' + ' ' + document.compatMode;
     setTimeout(function() { // focus after transition ends, otherwise unnessary scroll occurs.
@@ -58,7 +57,7 @@ function hide_searchbar(e) {
     var input = div.querySelector('input');
     input.blur();
   }
-  unhighlight();
+  unhighlight(true);
 }
 
 var prevquery = '';
@@ -67,7 +66,8 @@ var re;
 var total = 0;
 var pos = 0;
 
-function start_search(query) {
+function start_search(q) {
+  query = q;
   if (query === prevquery) return;
   prevquery = query;
   chrome.extension.sendRequest(
@@ -96,9 +96,9 @@ function highlight() {
   while (tn = textNodes.snapshotItem(i++)) {
     var texts = tn.nodeValue.split(re); // eg. 'abc'.split(/(b)/) => ['a', 'b', 'c']
     if (texts.length === 1) continue; // textNode doesn't match the regexp
-    n++;
     var html = texts.map(function(t, j) {
-      return (j % 2) ? '<font class="migemo-find-in-page-found">' + htmlEscape(t) + '</font>' : htmlEscape(t);
+      // increment n if regexp matches
+      return (j % 2 && ++n) ? '<font class="migemo-find-in-page-found">' + htmlEscape(t) + '</font>' : htmlEscape(t);
     }).join('');
     var df = range.createContextualFragment(html);
     tn.parentNode.replaceChild(df, tn);
@@ -107,25 +107,55 @@ function highlight() {
   document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
 }
 
-function unhighlight() {
+function unhighlight(focus) {
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
   var highlights = document.querySelectorAll('font.migemo-find-in-page-found');
+  var selected = document.querySelector('font.migemo-find-in-page-selected');
   var i = 0, hl;
   while (hl = highlights[i++]) {
-    var p = hl.parentNode;
-    p.replaceChild(document.createTextNode(hl.textContent), hl);
-    p.normalize();
+    if (hl !== selected) {
+      var p = hl.parentNode;
+      p.replaceChild(document.createTextNode(hl.textContent), hl);
+    }
   }
+  document.body.normalize();
   total = 0;
   pos = 0;
+
+  if (selected) {
+    if (focus) {
+      var ps = selected.previousSibling;
+      var so = ps ? (ps.nodeType === 3 ? ps.length : 0) : 0;
+      var eo = so + selected.textContent.length;
+      var pps = ps ? ps.previousSibling : null;
+    }
+
+    hl = selected;
+    p = hl.parentNode;
+    p.replaceChild(document.createTextNode(hl.textContent), hl);
+    p.normalize();
+
+    if (focus) {
+      if (pps) {
+        var text = pps.nextSibling;
+      } else {
+        var text = p.firstChild;
+      }
+      var range = document.createRange();
+      range.setStart(text, so);
+      range.setEnd(text, eo);
+      window.getSelection().addRange(range);
+      p.focus(); // focus if p is an anchor
+    }
+  }
 }
 
 function node_inserted_handler(e) {
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
   setTimeout(function() {
     var selected = document.querySelector('font.migemo-find-in-page-selected');
-    // dirty hack. remove migemo-find-in-page-selected class and keep migemo-find-in-page-selected class
-    if (selected) selected.className = 'migemo-find-in-page-selected';
+    // dirty hack. remove class and re-add it later
+    if (selected) selected.className = '';
     unhighlight();
     highlight();
     if (!selected) return;
@@ -148,7 +178,7 @@ function select_first_on_screen() {
   while (hl = highlights[i++]) {
     if (!is_visible(hl)) continue;
     var rect = hl.getBoundingClientRect();
-    if (rect.left > 0 && rect.left < width && rect.top > 0 && rect.top < height) {
+    if (rect.left >= 0 && rect.left < width && rect.top >= 0 && rect.top < height) {
       hl.className += ' migemo-find-in-page-selected';
       pos = i;
       break;
@@ -172,15 +202,15 @@ function cycle(n) {
     }
     selected.className = 'migemo-find-in-page-found';
   }
-  hl = highlights[((i += n) + len) % len];
+  hl = highlights[i = (i + n + len) % len];
   hl.className += ' migemo-find-in-page-selected';
   pos = i % len || len;
   if (timeout) timeout = clearTimeout(timeout); // == undefined
   timeout = setTimeout(function() { // debouncing. leave visibility check till later
     timeout = null;
-    hl.className = 'migemo-find-in-page-found'; // remove selected
+    hl.className = 'migemo-find-in-page-found'; // remove migemo-find-in-page-selected class
     while (!is_visible(hl)) {
-      hl = highlights[((i += n) + len) % len];
+      hl = highlights[i = (i + n + len) % len];
       pos = i % len || len;
       if (pos === startpos) {
         pos = 0;
@@ -196,7 +226,9 @@ function cycle(n) {
 }
 
 function info(pos, total) {
+  document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
   document.querySelector('#migemo-find-in-page-search-bar > span').textContent = pos + ' of ' + total;
+  document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
 }
 
 function is_visible(elem) {
@@ -228,30 +260,21 @@ function into_viewport(elem) {
 }
 
 function scroll_to_element(elem, origin) {
-  var flag = 0; // if true, scrolling is needed
   if (origin === document.body) {
-    var rect = elem.getBoundingClientRect();
-    var x = document.body.scrollLeft;
-    var y = document.body.scrollTop;
-    // calculate the differences by window.innerWidth/Height because some CSS such as "body {width: 100%, height: 100%}" mess up BoundingClientRect
-    if ((0 > rect.left || window.innerWidth < rect.right) && ++flag) {
-      x += (rect.left + rect.right) / 2 - window.innerWidth / 2;
-    }
-    if ((0 > rect.top || window.innerHeight < rect.bottom) && ++flag) {
-      y += (rect.top + rect.bottom) / 2 - window.innerHeight / 2;
-    }
+    // because some CSS such as "body {width: 100%, height: 100%}" mess up BoundingClientRect
+    var outer = {left: 0, right: window.innerWidth, top: 0, bottom: window.innerHeight};
   } else {
     var outer = origin.getBoundingClientRect();
-    var inner = elem.getBoundingClientRect();
-    var x = origin.scrollLeft;
-    var y = origin.scrollTop;
-    if ((outer.left > inner.left || outer.right < inner.right) && ++flag) {
-      x = (inner.left + inner.right) / 2 - (outer.left + outer.right) / 2;
-    }
-    if ((outer.top > inner.top || outer.bottom < inner.bottom) && ++flag) {
-      y = (inner.top + inner.bottom) / 2 - (outer.top + outer.bottom) / 2;
-    }
   }
+  var inner = elem.getBoundingClientRect();
+  var x = origin.scrollLeft;
+  var y = origin.scrollTop;
+  var flag = 0;
+  if ((outer.left > inner.left || outer.right < inner.right) && ++flag)
+    x += (inner.left + inner.right) / 2 - (outer.left + outer.right) / 2;
+  if ((outer.top > inner.top || outer.bottom < inner.bottom) && ++flag)
+    y += (inner.top + inner.bottom) / 2 - (outer.top + outer.bottom) / 2;
+
   if (flag) new Tween(origin, {
     time: 0.1,
     scrollLeft: {
