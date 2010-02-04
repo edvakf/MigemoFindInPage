@@ -38,6 +38,7 @@ function show_searchbar() {
     div.id = PREFIX + 'box';
     div.className = PREFIX + 'inactive' + ' ' + PREFIX + document.compatMode;
     var input = document.createElement('input');
+    input.id = PREFIX + 'input';
     div.appendChild(input);
     var span = document.createElement('span');
     div.appendChild(span);
@@ -178,15 +179,21 @@ function select_first_on_screen() {
 
 function is_viewable(elem) {
   var rects = elem.getClientRects();
-  var r, i = 0;
+  var boxid = PREFIX + 'box';
+  var inputid = PREFIX + 'input';
+  var i = 0;
   while (r = rects[i++]) {
-    switch (elem) {
-      // elementFromPoint takes coordinates on viewport (same coord as BoundingClientRect)
-      case document.elementFromPoint(r.left, r.top): return true;
-      case document.elementFromPoint(r.right, r.top): return true;
-      case document.elementFromPoint(r.left, r.bottom): return true;
-      case document.elementFromPoint(r.right, r.bottom): return true;
-    }
+    var e = document.elementFromPoint(r.left, r.top);
+    if (e && (e === elem || e.id === boxid || e.id === inputid)) return true;
+
+    var e = document.elementFromPoint(r.left, r.bottom - 1);
+    if (e && (e === elem || e.id === boxid || e.id === inputid)) return true;
+
+    var e = document.elementFromPoint(r.right - 1, r.top);
+    if (e && (e === elem || e.id === boxid || e.id === inputid)) return true;
+
+    var e = document.elementFromPoint(r.right - 1, r.bottom - 1);
+    if (e && (e === elem || e.id === boxid || e.id === inputid)) return true;
   }
   return false;
 }
@@ -240,8 +247,6 @@ function cycle(n) {
         }
         hl = highlights[i = (i + n + len) % len];
       } while (hl !== selected);
-    } catch(e) {
-      console.log(e);
     } finally {
       mover.release();
     }
@@ -291,14 +296,11 @@ Mover.prototype.scroll_to = function(target, origin, async) {
     origin.scrollLeft += dx;
     origin.scrollTop += dy;
   } else {
-    if (outer.left <= inner.left && outer.right >= inner.right) {
-      dx = 0;
-    }
-    if (outer.top <= inner.top && outer.bottom >= inner.bottom) {
-      dy = 0;
-    }
+    if (outer.left <= inner.left && outer.right >= inner.right) dx = 0;
+    if (outer.top <= inner.top && outer.bottom >= inner.bottom) dy = 0;
     if (dx || dy) new Tween(origin, {
       time: 0.1,
+      delay: 0,
       scrollLeft: {
         to: origin.scrollLeft + dx
       },
@@ -312,7 +314,7 @@ Mover.prototype.scroll_to = function(target, origin, async) {
 Mover.prototype.start = function(elem) {
   var target;
   while ((target = elem) && (elem = elem.mfip_container)) {
-    elem.scrollLeft = elem.mfip_original_scroll.left;
+    elem.scrollLeft = elem.mfip_original_scroll.left; // move back to the original position
     elem.scrollTop = elem.mfip_original_scroll.top;
     this.scroll_to(target, elem, true);
   }

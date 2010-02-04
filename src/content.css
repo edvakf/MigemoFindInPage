@@ -30,8 +30,8 @@ font.migemo-find-in-page-found {
   -webkit-border-bottom-right-radius: 6px;
   -webkit-border-bottom-left-radius: 6px;
   border: solid #8e8e8e 1px;
-  opacity: 0.8;
-  z-index: 2147483647;
+  z-index: 2147483646;
+  opacity: 0.7;
 }
 
 #migemo-find-in-page-box { /* CSS1Compat */
@@ -74,6 +74,7 @@ font.migemo-find-in-page-found {
   font: -webkit-control;
   padding-left: 2px;
   padding-right: 90px; /* space for span */
+  z-index: 2147483647;
 }
 
 #migemo-find-in-page-box input { /* CSS1Compat */
@@ -96,7 +97,7 @@ font.migemo-find-in-page-found {
   margin: 0;
   padding: 0;
   font: -webkit-control;
-  color: #777777;
+  color: #444444;
   height: 18px;
   z-index: 2147483646;
 }
