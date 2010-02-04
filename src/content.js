@@ -118,7 +118,7 @@ function unhighlight(focus) {
   // if focus == true, select the "selected" text and focus the parent node (can only focus links though)
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
   var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
-  var selected = document.querySelector('font.' + PREFIX + 'selected');
+  var selected = document.getElementById(PREFIX + 'selected');
   var i = 0, hl;
   while (hl = highlights[i++]) {
     if (hl !== selected) {
@@ -171,7 +171,7 @@ function select_first_on_screen() {
   var i = 0, hl;
   while (hl = highlights[i++]) {
     if (is_viewable(hl)) {
-      hl.className += ' ' + PREFIX + 'selected';
+      hl.id = PREFIX + 'selected';
       pos = i;
       break;
     }
@@ -200,43 +200,53 @@ function info(pos, total) {
   document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
 }
 
+var timer;
 function cycle(n) {
   var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
   var len = highlights.length;
   if (!len) return;
-  var selected = document.querySelector('font.' + PREFIX + 'selected');
+  var selected = document.getElementById(PREFIX + 'selected');
   var i = n > 0 ? 0 : len - 1;
   var hl;
   if (selected) {
     while (hl = highlights[i += n]) {
       if (hl === selected) break;
     }
-    selected.className = PREFIX + 'found';
+    selected.id = '';
   }
-  var starti = i;
-  var mover = new Mover;
-  try {
-    while (true) {
-      hl = highlights[i = (i + n + len) % len];
-      if (i === starti) {
-        pos = 0;
-        break;
-      }
-      mover.test_move(hl); // synchronously move
-      if (is_viewable(hl)) {
-        hl.className += ' ' + PREFIX + 'selected';
-        pos = i % len || len;
-        mover.start(hl);
-        break;
-      }
-    }
-  } catch(e) {
-    console.log(e);
-  } finally {
-    mover.release();
-  }
+  hl = highlights[i = (i + n + len) % len];
+  hl.id = PREFIX + 'selected';
+  pos = i % len || len;
 
-  info(pos, total);
+  var starti = i;
+  timer = clearTimeout(timer);
+  timer = setTimeout(function() {
+    var mover = new Mover;
+    try {
+      while (true) {
+        mover.test_move(hl); // synchronously move
+        if (is_viewable(hl)) {
+          hl.id = PREFIX + 'selected';
+          pos = i % len || len;
+          mover.start(hl);
+          break;
+        }
+
+        hl.id = '';
+        hl = highlights[i = (i + n + len) % len];
+        if (i === starti) {
+          pos = 0;
+          break;
+        }
+      }
+    } catch(e) {
+      console.log(e);
+    } finally {
+      mover.release();
+    }
+
+    info(pos, total);
+  }, 20);
 }
 
 function Mover() {
@@ -281,10 +291,10 @@ Mover.prototype.scroll_to = function(target, origin, async) {
     origin.scrollLeft += dx;
     origin.scrollTop += dy;
   } else {
-    if (!(outer.left > inner.left || outer.right < inner.right)) {
+    if (outer.left <= inner.left && outer.right >= inner.right) {
       dx = 0;
     }
-    if (!(outer.top > inner.top || outer.bottom < inner.bottom)) {
+    if (outer.top <= inner.top && outer.bottom >= inner.bottom) {
       dy = 0;
     }
     if (dx || dy) new Tween(origin, {

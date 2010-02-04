@@ -5,7 +5,8 @@ font.migemo-find-in-page-found {
   background-color: #ffff00;
 }
 
-font.migemo-find-in-page-selected {
+#migemo-find-in-page-selected {
+  /*-webkit-transition: background-color 0.01s ease-out;*/
   background-color: #ff9632;
 }
 
