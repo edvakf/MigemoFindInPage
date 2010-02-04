@@ -71,16 +71,23 @@ var re;
 var total = 0;
 var pos = 0;
 
-function start_search(q) {
+function start_search(q, retry) {
   query = q;
-  if (query === prevquery) return;
+  retry = retry || 0;
+  if (retry > 2 && query === prevquery) return;
   prevquery = query;
+
+  var timer = setTimeout(function() {// retry case 1. no response
+    if (query === q) start_search(query, retry + 1);
+  }, 300);
+
   chrome.extension.sendRequest(
     MIGEMO_ID,
     {"action": "getRegExpString", "query": query},
     function(response) {
-      if (!response) return; // something went wrong (bug of Migemo server)
+      clearTimeout(timer);
       if (response.query !== query) return; // already typed next letter
+      if (response.query && !response.result) return start_search(query, retry + 1); // retry case 2. something went wrong on the server
       re = new RegExp('(' + response.result + ')', 'i');
       unhighlight();
       highlight();
