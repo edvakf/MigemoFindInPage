@@ -96,7 +96,7 @@ function start_search(q, retry) {
   )
 }
 
-var XPATH = 'descendant::text()[string-length(normalize-space(self::text())) > 0 and not(ancestor::title or ancestor::textarea or ancestor::script or ancestor::style or ancestor::x:title or ancestor::x:textarea or ancestor::x:script or ancestor::x:style) and not(ancestor::*[1][contains(concat(" ",normalize-space(@class)," "), " ' + PREFIX + 'found ")])]';
+var XPATH = '/html/body/descendant::text()[string-length(normalize-space(self::text())) > 0 and not(ancestor::textarea or ancestor::script or ancestor::style or ancestor::x:textarea or ancestor::x:script or ancestor::x:style) and not(ancestor::*[1][contains(concat(" ",normalize-space(@class)," "), " ' + PREFIX + 'found ")])]';
 var NSResolver = function() {return 'http://www.w3.org/1999/xhtml'};
 var expr = document.createExpression(XPATH, NSResolver);
 function highlight() {
@@ -123,8 +123,8 @@ function highlight() {
 function unhighlight(focus) {
   // if focus == true, select the "selected" text and focus the parent node (can only focus links though)
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
-  var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
   var selected = document.getElementById(PREFIX + 'selected');
+  var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
   var i = 0, hl;
   while (hl = highlights[i++]) {
     if (hl !== selected) {
@@ -165,7 +165,9 @@ function unhighlight(focus) {
 }
 
 function node_inserted_handler(e) {
-  document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
+  // DOMNodeInserted occurs synchronously, so if some process inserts a lot of nodes, this captures all of them and get's very slow.
+  // so remove event listener once and deal with them later all at once
+  document.removeEventListener('DOMNodeInserted', node_inserted_handler, false); 
   setTimeout(function() {
     highlight();
   }, 10);
@@ -173,6 +175,12 @@ function node_inserted_handler(e) {
 
 // if any matched text is on current screen, select it. otherwise, don't select anything
 function select_first_on_screen() { 
+  var selected = document.getElementById(PREFIX + 'selected');
+  if (selected) {
+    if (is_viewable(selected)) return;
+    selected.id = '';
+  }
+
   var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
   var i = 0, hl;
   while (hl = highlights[i++]) {
