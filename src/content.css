@@ -98,6 +98,7 @@ font.migemo-find-in-page-found {
   font: -webkit-control;
   color: #777777;
   height: 18px;
+  z-index: 2147483646;
 }
 
 #migemo-find-in-page-box span { /* CSS1Compat */
