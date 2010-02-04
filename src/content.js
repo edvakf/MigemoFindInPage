@@ -3,8 +3,12 @@
 
 if (document.contentType && !/html/i.test(document.contentType)) return;
 
-var MIGEMO_ID = 'pocnedlaincikkkcmlpcbipcflgjnjlj';
-var PREFIX = 'migemo-find-in-page-';
+window.addEventListener('MigemoFIP.Activate', show_searchbar, false);
+window.addEventListener('MigemoFIP.Inactivate', hide_searchbar, false);
+window.addEventListener('MigemoFIP.Next', function() {cycle(1)}, false);
+window.addEventListener('MigemoFIP.Previous', function() {cycle(-1)}, false);
+
+/*
 var ACTIVATE_KEY = 191; // backslash
 var HIDE_KEY = 186; // semicolon
 var FIND_NEXT_KEY = 40; // down
@@ -28,6 +32,9 @@ window.addEventListener('keydown', function(e) {
     cycle(-1);
   }
 }, false);
+*/
+
+var PREFIX = 'migemo-find-in-page-';
 
 function show_searchbar() {
   var div = document.getElementById(PREFIX + 'box');
@@ -67,6 +74,7 @@ function hide_searchbar(e) {
   unhighlight(true);
 }
 
+var MIGEMO_ID = 'pocnedlaincikkkcmlpcbipcflgjnjlj';
 var prevquery = '';
 var query = '';
 var re;
@@ -340,8 +348,6 @@ function htmlEscape(text) {
   return text.replace(/[<>&"']/g,function(s) {return html_unsafe_hash[s];});
 }
 
-})()
-
 // tween2.js : http://code.google.com/p/autopatchwork/source/browse/AutoPatchWork/tween2.js
 // Tweener Like snippet
 // var tw = new Tween(div.style,{time:1, onComplete:function(){},left:{to:0,from:100,tmpl:"$#px"}});
@@ -374,7 +380,7 @@ function Tween(item, opt) {
 				if (isFilter) {
 					item(sets[k].to);
 				} else {
-          item[sets[k].key] = sets[k].tmpl.replace(TM_EXP, sets[k].to);
+					item[sets[k].key] = sets[k].tmpl.replace(TM_EXP, sets[k].to);
 				}
 			}
 			if (typeof opt.onComplete == 'function') opt.onComplete(item);
@@ -410,3 +416,5 @@ function Tween(item, opt) {
 	};
 	delay ? this.T=setTimeout(function(){run();},delay) : run(0);
 }
+
+})();
