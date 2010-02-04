@@ -93,10 +93,10 @@ var XPATH = 'descendant::text()[string-length(normalize-space(self::text())) > 0
 var NSResolver = function() {return 'http://www.w3.org/1999/xhtml'};
 var expr = document.createExpression(XPATH, NSResolver);
 function highlight() {
+  document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
   var textNodes = expr.evaluate(document, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
   var range = document.createRange();  // will be used to create DocumentFragment
   range.selectNodeContents(document.body);
-  var n = 0;
   var i = 0, tn, len;
   while (tn = textNodes.snapshotItem(i++)) {
     var texts = tn.nodeValue.split(re); // eg. 'abc'.split(/(b)/) => ['a', 'b', 'c']
@@ -104,13 +104,12 @@ function highlight() {
     var html = '';
     for (var j = 0; j < len; ++j) {
       var t = htmlEscape(texts[j]);
-      html += (j % 2 && ++n) ? '<font class="' + PREFIX + 'found">' + t + '</font>' : t;
-                      // increment n if regexp matches
+      html += (j % 2) ? '<font class="' + PREFIX + 'found">' + t + '</font>' : t;
     }
     var df = range.createContextualFragment(html);
     tn.parentNode.replaceChild(df, tn);
   }
-  total = n;
+  total = document.querySelectorAll('font.' + PREFIX + 'found').length;
   document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
 }
 
@@ -408,86 +407,3 @@ function Tween(item, opt) {
 	};
 	delay ? this.T=setTimeout(function(){run();},delay) : run(0);
 }
-
-function is_visible(elem) {
-  // define: 
-  // "container" is an element that has overflow:auto/scroll/hidden
-  // "outer container" to be the nearest ancestor that is a "container"
-  // "irregular" is an element that has position:absolute/fixed
-  //
-  // strategy: 
-  // two cases which are easy to say *invisible*
-  // => 1. elem has display:none or visibility:hidden (inherits from ancestors)
-  // => 2. elem's rect has zero width or height
-  //
-  // if elem's outer container is X, then check if elem's rect is within X's entire area
-  // => if false, then return *invisible*.
-  // => if true, then set X as elem and start over again
-  //
-  // if we hit irregular Y, then check if Y is visible within window (in case of fixed) or document (in case of absolute)
-  // => if invisible, then return *invisible*.
-  // => if visible, then check if elem's rect is within Y's entire area (note: Y could be a container)
-  //    => if false, then return *invisible*
-  //    => if true, then return *visible*
-  //
-  // checking if an element is visible within an area follows "little or nothing",
-  // so its invisible only if it's completely outside of the area, or 
-  // there is another element above it (larger z-index).
-  // this means there are misjudgements, but quite probably not many.
-
-  var s = getComputedStyle(elem, null);
-  if (s.visibility === 'hidden' || s.display === 'none') return false;
-  var body = document.body;
-
-  // document's area
-  var view = {top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth};
-  var page = {
-    top: view.top - body.scrollTop, 
-    bottom: view.top - body.scrollTop + body.scrollHeight, 
-    left: view.left - body.scrollLeft, 
-    right: view.left - body.scrollLeft + body.scrollWidth
-  };
-
-  var p = elem;
-  while (p) {
-    var rect = p.getBoundingClientRect();
-    if (rect.right === rect.left || rect.top === rect.bottom) return false;
-
-    if (s.position === 'fixed') {
-      return is_visible_within(null,null,rect,view);
-    } else if (p === body || s.position === 'absolute') {
-      return is_visible_within(null,null,rect,page);
-    }
-
-    p = p.parentNode;
-
-    s = getComputedStyle(p, null);
-    if (s && /auto|scroll|hidden/.test(s.overflowX + s.overflowY)) { // then p is an outer container
-    /*
-      if (!is_visible_within(elem, p, rect)) return false;
-
-    */
-      elem = p;
-    }
-  }
-  return true;
-}
-
-function is_visible_within(elem, container, rect, area) {
-  if (rect && area) {
-    return !(rect.top > area.bottom || rect.bottom < area.top || rect.left > area.right || rect.right < area.left);
-  }
-  rect = rect || elem.getBoundingClientRect();
-  if (!area) {
-    var area = container.getBoundingClientRect();
-    area = {
-      top: area.top - container.scrollTop,
-      bottom: area.top - container.scrollTop + container.scrollHeight,
-      left: area.left - container.scrollLeft,
-      right: area.left - area.scrollLeft + container.scrollWidth
-    }
-  }
-  if (rect.top > area.bottom || rect.bottom < area.top || rect.left > area.right || rect.right < area.left) return false;
-  return true;
-}
-
