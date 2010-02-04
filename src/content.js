@@ -167,16 +167,10 @@ function node_inserted_handler(e) {
 
 // if any matched text is on current screen, select it. otherwise, don't select anything
 function select_first_on_screen() { 
-  var width = window.innerWidth;
-  var height = window.innerHeight;
-
   var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
   var i = 0, hl;
   while (hl = highlights[i++]) {
-    var rect = hl.getBoundingClientRect();
-    if (rect.left >= 0 && rect.left < width && rect.top >= 0 && rect.top < height && 
-        document.elementFromPoint(rect.left, rect.top) === hl) { 
-        // elementFromPoint requires coordinates on viewport (same coord as BoundingClientRect)
+    if (is_viewable(hl)) {
       hl.className += ' ' + PREFIX + 'selected';
       pos = i;
       break;
@@ -185,12 +179,31 @@ function select_first_on_screen() {
   info(pos, total);
 }
 
-var timeout = null;
+function is_viewable(elem) {
+  var rects = elem.getClientRects();
+  var r, i = 0;
+  while (r = rects[i++]) {
+    switch (elem) {
+      // elementFromPoint takes coordinates on viewport (same coord as BoundingClientRect)
+      case document.elementFromPoint(r.left, r.top): return true;
+      case document.elementFromPoint(r.right, r.top): return true;
+      case document.elementFromPoint(r.left, r.bottom): return true;
+      case document.elementFromPoint(r.right, r.bottom): return true;
+    }
+  }
+  return false;
+}
+
+function info(pos, total) {
+  document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
+  document.querySelector('#' + PREFIX + 'box > span').textContent = pos + ' of ' + total;
+  document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
+}
+
 function cycle(n) {
   var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
   var len = highlights.length;
   if (!len) return;
-  var startpos = pos;
   var selected = document.querySelector('font.' + PREFIX + 'selected');
   var i = n > 0 ? 0 : len - 1;
   var hl;
@@ -200,33 +213,190 @@ function cycle(n) {
     }
     selected.className = PREFIX + 'found';
   }
-  hl = highlights[i = (i + n + len) % len];
-  hl.className += ' ' + PREFIX + 'selected';
-  pos = i % len || len;
-  if (timeout) timeout = clearTimeout(timeout); // == undefined
-  timeout = setTimeout(function() { // debouncing. leave visibility check till later
-    timeout = null;
-    hl.className = PREFIX + 'found'; // remove migemo-find-in-page-selected class
-    while (!is_visible(hl)) {
+  var starti = i;
+  var mover = new Mover;
+  try {
+    while (true) {
       hl = highlights[i = (i + n + len) % len];
-      pos = i % len || len;
-      if (pos === startpos) {
+      if (i === starti) {
         pos = 0;
         break;
       }
+      mover.test_move(hl); // synchronously move
+      if (is_viewable(hl)) {
+        hl.className += ' ' + PREFIX + 'selected';
+        pos = i % len || len;
+        mover.start(hl);
+        break;
+      }
     }
-    info(pos, total);
-    if (pos) {
-      hl.className += ' ' + PREFIX + 'selected';
-      into_viewport(hl);
-    }
-  }, 20);
+  } catch(e) {
+    console.log(e);
+  } finally {
+    mover.release();
+  }
+
+  info(pos, total);
 }
 
-function info(pos, total) {
-  document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
-  document.querySelector('#' + PREFIX + 'box > span').textContent = pos + ' of ' + total;
-  document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
+function Mover() {
+  this.elements = []; // collection of tainted elements
+  this.viewport = {left: 0, right: window.innerWidth, top: 0, bottom: window.innerHeight};
+}
+
+Mover.prototype.test_move = function(elem) {
+  if (elem === document.body) return;
+  var target = elem;
+  this.elements.push(target);
+  if (elem = target.mfip_container) {
+    this.scroll_to(target, elem);
+    this.test_move(elem);
+    return;
+  }
+  elem = target;
+  while (elem = elem.parentNode) {
+    this.elements.push(elem);
+    var s = elem.mfip_style || (elem.mfip_style = getComputedStyle(elem, null));
+    if (elem === document.body || /auto|scroll/.test(s.overflowX + s.overflowY)) {
+      target.mfip_container = elem;
+      this.scroll_to(target, elem);
+      this.test_move(elem);
+      return;
+    }
+  }
+}
+
+Mover.prototype.scroll_to = function(target, origin, async) {
+  var inner = target.getBoundingClientRect();
+  if (!origin.mfip_original_scroll) origin.mfip_original_scroll = {top: origin.scrollTop, left: origin.scrollLeft};
+
+  if (origin === document.body) {
+    var outer = this.viewport;
+  } else {
+    var outer = origin.getBoundingClientRect();
+  }
+  var dx = (inner.left + inner.right) / 2 - (outer.left + outer.right) / 2;
+  var dy = (inner.top + inner.bottom) / 2 - (outer.top + outer.bottom) / 2;
+  if (!async) {
+    origin.scrollLeft += dx;
+    origin.scrollTop += dy;
+  } else {
+    if (!(outer.left > inner.left || outer.right < inner.right)) {
+      dx = 0;
+    }
+    if (!(outer.top > inner.top || outer.bottom < inner.bottom)) {
+      dy = 0;
+    }
+    if (dx || dy) new Tween(origin, {
+      time: 0.1,
+      scrollLeft: {
+        to: origin.scrollLeft + dx
+      },
+      scrollTop: {
+        to: origin.scrollTop + dy
+      }
+    });
+  }
+}
+
+Mover.prototype.start = function(elem) {
+  var target;
+  while ((target = elem) && (elem = elem.mfip_container)) {
+    elem.scrollLeft = elem.mfip_original_scroll.left;
+    elem.scrollTop = elem.mfip_original_scroll.top;
+    this.scroll_to(target, elem, true);
+  }
+}
+
+Mover.prototype.release = function() {
+  var elems = this.elements, i = -1, e;
+  while (e = elems[++i]) {
+    delete e.mfip_container;
+    delete e.mfip_style;
+    delete e.mfip_original_scroll;
+  }
+}
+
+var html_unsafe_hash = {
+  '<': '&lt;',
+  '>': '&gt;',
+  '&': '&amp;',
+  '"': '&quot;',
+  "'": '&apos;',
+};
+function htmlEscape(text) {
+  return text.replace(/[<>&"']/g,function(s) {return html_unsafe_hash[s];});
+}
+
+})()
+
+// tween2.js : http://code.google.com/p/autopatchwork/source/browse/AutoPatchWork/tween2.js
+// Tweener Like snippet
+// var tw = new Tween(div.style,{time:1, onComplete:function(){},left:{to:0,from:100,tmpl:"$#px"}});
+function Tween(item, opt) {
+	var self = this, TIME = 10, time = (opt.time||1) * 1000, TM_EXP = /(\+)?\$([\#\d])/g, sets = [], isFilter,
+		easing = opt.transition || function(t, b, c, d){return c*t/d + b;}, _T = {time:1,onComplete:1,transition:1,delay:1};
+	for (var k in opt) if (!_T[k]) {
+		var set = opt[k], from = set.from || parseFloat(item[k]) || 0, values = [], tmpl = set.tmpl || '$#';
+		if (typeof item === 'function') {
+			isFilter = true;
+			sets.push({from:from, to:set.to});
+		} else {
+			sets.push({key:k, from:from, to:set.to, tmpl:tmpl});
+		}
+	}
+	var L = sets.length, delay = opt.delay*1000 || 0, startTime = new Date()*1 + delay, run = function(){
+		var now = new Date()*1, tim = self.prev = now - startTime;
+		for (var k = 0; k < L; ++k) {
+			var set = sets[k], val = easing(tim, set.from, set.to - set.from, time);
+			if (isFilter) {
+				item(val);
+			} else {
+				item[set.key] = set.tmpl.replace(TM_EXP,
+				function(m, p, m1){return p && val < 0 ? 0 : (m1 == '#' ? val : val.toFixed(m1));});
+			}
+		}
+		if (tim <= time) {self.T=setTimeout(function(){run.call(self);},TIME);}
+		else {
+			for (var k = 0; k < L; ++k) {
+				if (isFilter) {
+					item(sets[k].to);
+				} else {
+          item[sets[k].key] = sets[k].tmpl.replace(TM_EXP, sets[k].to);
+				}
+			}
+			if (typeof opt.onComplete == 'function') opt.onComplete(item);
+			self.end = true;
+		}
+	};
+	self.prev = 0;
+	this.restart = function(){
+		startTime = new Date()*1 - self.prev;
+		run();
+	};
+	this.pause = function(){
+		if(self.T){
+			clearTimeout(self.T);
+			self.T = null;
+		}
+	};
+	this.stop = function(){
+		if(self.T){
+			clearTimeout(self.T);
+			self.T = null;
+			self.prev = 0;
+			for (var k = 0; k < L; ++k) {
+				var set = sets[k], val = set.from;
+				if (isFilter) {
+					item(val);
+				} else {
+					item[set.key] = set.tmpl.replace(TM_EXP,
+						function(m, p, m1){return p && val < 0 ? 0 : (m1 == '#' ? val : val.toFixed(m1));});
+				}
+			}
+		}
+	};
+	delay ? this.T=setTimeout(function(){run();},delay) : run(0);
 }
 
 function is_visible(elem) {
@@ -311,126 +481,3 @@ function is_visible_within(elem, container, rect, area) {
   return true;
 }
 
-function into_viewport(elem) {
-  var target = elem;
-  while (elem = elem.parentNode) {
-    if (elem === document.body || elem === document.documentElement) break;
-    var s = getComputedStyle(elem, null);
-    if (s && /auto|scroll/.test(s.overflowX + s.overflowY)) {
-      scroll_to_element(target, elem);
-      into_viewport(elem);
-      return;
-    }
-  }
-  scroll_to_element(target, document.body);
-}
-
-function scroll_to_element(elem, origin) {
-  var inner = elem.getBoundingClientRect();
-  var x = origin.scrollLeft;
-  var y = origin.scrollTop;
-  var flag = 0;
-
-  if (origin === document.body || origin === document.documentElement) {
-    var outer = {left: 0, right: window.innerWidth, top: 0, bottom: window.innerHeight};
-  } else {
-    var outer = origin.getBoundingClientRect();
-  }
-  if ((outer.left > inner.left || outer.right < inner.right) && ++flag)
-    x += (inner.left + inner.right) / 2 - (outer.left + outer.right) / 2;
-  if ((outer.top > inner.top || outer.bottom < inner.bottom) && ++flag)
-    y += (inner.top + inner.bottom) / 2 - (outer.top + outer.bottom) / 2;
-
-  //if (flag) {origin.scrollLeft = x; origin.scrollTop = y};
-  if (flag) new Tween(origin, {
-    time: 0.1,
-    scrollLeft: {
-      to: x
-    },
-    scrollTop: {
-      to: y
-    }
-  });
-}
-
-var html_unsafe_hash = {
-  '<': '&lt;',
-  '>': '&gt;',
-  '&': '&amp;',
-  '"': '&quot;',
-  "'": '&apos;',
-};
-function htmlEscape(text) {
-  return text.replace(/[<>&"']/g,function(s) {return html_unsafe_hash[s];});
-}
-
-})()
-
-// tween2.js : http://code.google.com/p/autopatchwork/source/browse/AutoPatchWork/tween2.js
-// Tweener Like snippet
-// var tw = new Tween(div.style,{time:1, onComplete:function(){},left:{to:0,from:100,tmpl:"$#px"}});
-function Tween(item, opt) {
-	var self = this, TIME = 10, time = (opt.time||1) * 1000, TM_EXP = /(\+)?\$([\#\d])/g, sets = [], isFilter,
-		easing = opt.transition || function(t, b, c, d){return c*t/d + b;}, _T = {time:1,onComplete:1,transition:1,delay:1};
-	for (var k in opt) if (!_T[k]) {
-		var set = opt[k], from = set.from || parseFloat(item[k]) || 0, values = [], tmpl = set.tmpl || '$#';
-		if (typeof item === 'function') {
-			isFilter = true;
-			sets.push({from:from, to:set.to});
-		} else {
-			sets.push({key:k, from:from, to:set.to, tmpl:tmpl});
-		}
-	}
-	var L = sets.length, delay = opt.delay*1000 || 0, startTime = new Date()*1 + delay, run = function(){
-		var now = new Date()*1, tim = self.prev = now - startTime;
-		for (var k = 0; k < L; ++k) {
-			var set = sets[k], val = easing(tim, set.from, set.to - set.from, time);
-			if (isFilter) {
-				item(val);
-			} else {
-				item[set.key] = set.tmpl.replace(TM_EXP,
-				function(m, p, m1){return p && val < 0 ? 0 : (m1 == '#' ? val : val.toFixed(m1));});
-			}
-		}
-		if (tim <= time) {self.T=setTimeout(function(){run.call(self);},TIME);}
-		else {
-			for (var k = 0; k < L; ++k) {
-				if (isFilter) {
-					item(sets[k].to);
-				} else {
-          item[sets[k].key] = sets[k].tmpl.replace(TM_EXP, sets[k].to);
-				}
-			}
-			if (typeof opt.onComplete == 'function') opt.onComplete(item);
-			self.end = true;
-		}
-	};
-	self.prev = 0;
-	this.restart = function(){
-		startTime = new Date()*1 - self.prev;
-		run();
-	};
-	this.pause = function(){
-		if(self.T){
-			clearTimeout(self.T);
-			self.T = null;
-		}
-	};
-	this.stop = function(){
-		if(self.T){
-			clearTimeout(self.T);
-			self.T = null;
-			self.prev = 0;
-			for (var k = 0; k < L; ++k) {
-				var set = sets[k], val = set.from;
-				if (isFilter) {
-					item(val);
-				} else {
-					item[set.key] = set.tmpl.replace(TM_EXP,
-						function(m, p, m1){return p && val < 0 ? 0 : (m1 == '#' ? val : val.toFixed(m1));});
-				}
-			}
-		}
-	};
-	delay ? this.T=setTimeout(function(){run();},delay) : run(0);
-}
