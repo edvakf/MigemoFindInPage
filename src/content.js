@@ -230,12 +230,12 @@ function cycle(n) {
     }
     selected.id = '';
   }
-  hl = selected = highlights[i = (i + n + len) % len];
-  selected.id = PREFIX + 'selected';
+  hl = highlights[i = (i + n + len) % len];
+  hl.id = PREFIX + 'selected';
 
   clearTimeout(timer);
   timer = setTimeout(function() {
-    selected.id = '';
+    hl.id = '';
     var mover = new Mover;
     try {
       do {
@@ -246,12 +246,12 @@ function cycle(n) {
           break;
         }
         hl = highlights[i = (i + n + len) % len];
-      } while (hl !== selected);
+      } while (hl !== selected); // break if we come back to the originally selected item
     } finally {
       mover.release();
     }
     update_info();
-  }, 20);
+  }, 40);
 }
 
 function Mover() {
@@ -321,8 +321,8 @@ Mover.prototype.start = function(elem) {
 }
 
 Mover.prototype.release = function() {
-  var elems = this.elements, i = 0, e;
-  while (e = elems[i++]) {
+  var elems = this.elements, e;
+  while (e = elems.pop()) {
     delete e.mfip_container;
     delete e.mfip_style;
     delete e.mfip_original_scroll;
