@@ -51,6 +51,7 @@ function show_searchbar() {
       input.select();
       highlight();
       select_first_on_screen();
+      update_info();
     }, 150);
   }, 0);
 }
@@ -68,8 +69,6 @@ function hide_searchbar(e) {
 var prevquery = '';
 var query = '';
 var re;
-var total = 0;
-var pos = 0;
 
 function start_search(q, retry) {
   query = q;
@@ -92,6 +91,7 @@ function start_search(q, retry) {
       unhighlight();
       highlight();
       select_first_on_screen();
+      update_info();
     }
   )
 }
@@ -99,6 +99,7 @@ function start_search(q, retry) {
 var XPATH = '/html/body/descendant::text()[string-length(normalize-space(self::text())) > 0 and not(ancestor::textarea or ancestor::script or ancestor::style or ancestor::x:textarea or ancestor::x:script or ancestor::x:style) and not(ancestor::*[1][contains(concat(" ",normalize-space(@class)," "), " ' + PREFIX + 'found ")])]';
 var NSResolver = function() {return 'http://www.w3.org/1999/xhtml'};
 var expr = document.createExpression(XPATH, NSResolver);
+
 function highlight() {
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
   var textNodes = expr.evaluate(document, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -116,52 +117,35 @@ function highlight() {
     var df = range.createContextualFragment(html);
     tn.parentNode.replaceChild(df, tn);
   }
-  total = document.querySelectorAll('font.' + PREFIX + 'found').length;
   document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
 }
 
 function unhighlight(focus) {
-  // if focus == true, select the "selected" text and focus the parent node (can only focus links though)
+  // if focus == true, select the "selected" text and focus the parent node (can only focus anchors)
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
   var selected = document.getElementById(PREFIX + 'selected');
+  if (selected) selected.className = '';
+
   var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
   var i = 0, hl;
-  while (hl = highlights[i++]) {
-    if (hl !== selected) {
-      var p = hl.parentNode;
-      p.replaceChild(document.createTextNode(hl.textContent), hl);
-    }
-  }
-  document.body.normalize();
-  total = 0;
-  pos = 0;
-
-  if (selected) {
-    if (focus) {
-      var ps = selected.previousSibling;
-      var so = ps ? (ps.nodeType === 3 ? ps.length : 0) : 0;
-      var eo = so + selected.textContent.length;
-      var pps = ps ? ps.previousSibling : null;
-    }
-
-    hl = selected;
-    p = hl.parentNode;
+  while (hl = highlights[i++]) { // replace highlighted <font> with its textContent
+    var p = hl.parentNode;
     p.replaceChild(document.createTextNode(hl.textContent), hl);
-    p.normalize();
-
-    if (focus) {
-      if (pps) {
-        var text = pps.nextSibling;
-      } else {
-        var text = p.firstChild;
-      }
-      var range = document.createRange();
-      range.setStart(text, so);
-      range.setEnd(text, eo);
-      window.getSelection().addRange(range);
-      p.focus(); // focus if p is an anchor
-    }
   }
+  if (!selected) return document.body.normalize();
+
+  var p = selected.parentNode;
+  var text = document.createTextNode(selected.textContent);
+  p.replaceChild(text, selected);
+  if (!focus) return document.body.normalize();
+
+  var range = document.createRange();
+  range.setStartBefore(text);
+  range.setEndAfter(text);
+  window.getSelection().addRange(range);
+  p.focus(); // focus if p is an anchor
+
+  document.body.normalize();
 }
 
 function node_inserted_handler(e) {
@@ -170,6 +154,7 @@ function node_inserted_handler(e) {
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false); 
   setTimeout(function() {
     highlight();
+    update_info();
   }, 10);
 }
 
@@ -178,7 +163,7 @@ function select_first_on_screen() {
   var selected = document.getElementById(PREFIX + 'selected');
   if (selected) {
     if (is_viewable(selected)) return;
-    selected.id = '';
+    else selected.id = '';
   }
 
   var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
@@ -186,11 +171,9 @@ function select_first_on_screen() {
   while (hl = highlights[i++]) {
     if (is_viewable(hl)) {
       hl.id = PREFIX + 'selected';
-      pos = i;
       break;
     }
   }
-  info(pos, total);
 }
 
 function is_viewable(elem) {
@@ -208,9 +191,21 @@ function is_viewable(elem) {
   return false;
 }
 
-function info(pos, total) {
+function update_info() {
+  var highlights = document.querySelectorAll('font.' + PREFIX + 'found');
+  var len = highlights.length;
+  var i = 0;
+  if (len) {
+    var selected = document.getElementById(PREFIX + 'selected');
+    var hl;
+    if (selected) {
+      while (hl = highlights[i++]) {
+        if (hl === selected) break;
+      }
+    }
+  }
   document.removeEventListener('DOMNodeInserted', node_inserted_handler, false);
-  document.querySelector('#' + PREFIX + 'box > span').textContent = pos + ' of ' + total;
+  document.querySelector('#' + PREFIX + 'box > span').textContent = i + ' of ' + len;
   document.addEventListener('DOMNodeInserted', node_inserted_handler, false);
 }
 
@@ -220,7 +215,7 @@ function cycle(n) {
   var len = highlights.length;
   if (!len) return;
   var selected = document.getElementById(PREFIX + 'selected');
-  var i = n > 0 ? 0 : len - 1;
+  var i = n > 0 ? -1 : len;
   var hl;
   if (selected) {
     while (hl = highlights[i += n]) {
@@ -228,38 +223,29 @@ function cycle(n) {
     }
     selected.id = '';
   }
-  hl = highlights[i = (i + n + len) % len];
-  hl.id = PREFIX + 'selected';
-  pos = i % len || len;
+  hl = selected = highlights[i = (i + n + len) % len];
+  selected.id = PREFIX + 'selected';
 
-  var starti = i;
-  timer = clearTimeout(timer);
+  clearTimeout(timer);
   timer = setTimeout(function() {
+    selected.id = '';
     var mover = new Mover;
     try {
-      while (true) {
-        mover.test_move(hl); // synchronously move
+      do {
+        mover.test_move(hl); // sync move
         if (is_viewable(hl)) {
           hl.id = PREFIX + 'selected';
-          pos = i % len || len;
-          mover.start(hl);
+          mover.start(hl); // async move
           break;
         }
-
-        hl.id = '';
         hl = highlights[i = (i + n + len) % len];
-        if (i === starti) {
-          pos = 0;
-          break;
-        }
-      }
+      } while (hl !== selected);
     } catch(e) {
       console.log(e);
     } finally {
       mover.release();
     }
-
-    info(pos, total);
+    update_info();
   }, 20);
 }
 
@@ -333,8 +319,8 @@ Mover.prototype.start = function(elem) {
 }
 
 Mover.prototype.release = function() {
-  var elems = this.elements, i = -1, e;
-  while (e = elems[++i]) {
+  var elems = this.elements, i = 0, e;
+  while (e = elems[i++]) {
     delete e.mfip_container;
     delete e.mfip_style;
     delete e.mfip_original_scroll;
