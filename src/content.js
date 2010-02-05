@@ -2,12 +2,13 @@
 (function() {
 
 if (document.contentType && !/html/i.test(document.contentType)) return;
+/*
 window.addEventListener('MigemoFIP.Activate', show_searchbar, false);
 window.addEventListener('MigemoFIP.Inactivate', hide_searchbar, false);
 window.addEventListener('MigemoFIP.Next', function() {cycle(1)}, false);
 window.addEventListener('MigemoFIP.Previous', function() {cycle(-1)}, false);
+*/
 
-/*
 var ACTIVATE_KEY = 191; // backslash
 var HIDE_KEY = 186; // semicolon
 var FIND_NEXT_KEY = 40; // down
@@ -31,7 +32,6 @@ window.addEventListener('keydown', function(e) {
     cycle(-1);
   }
 }, false);
-*/
 
 var PREFIX = 'migemo-find-in-page-';
 
@@ -77,6 +77,7 @@ var MIGEMO_ID = 'pocnedlaincikkkcmlpcbipcflgjnjlj';
 var prevquery = '';
 var query = '';
 var re;
+var wait;
 
 function start_search(q, retry) {
   query = q;
@@ -84,24 +85,28 @@ function start_search(q, retry) {
   if (retry > 2 && query === prevquery) return;
   prevquery = query;
 
-  var timer = setTimeout(function() {// retry case 1. no response
-    if (query === q) start_search(query, retry + 1);
-  }, 300);
+  clearTimeout(wait);
+  wait = setTimeout(function() {
+    var timer = setTimeout(function() {// retry case 1. no response
+      if (query === q) start_search(query, retry + 1);
+    }, 200);
 
-  chrome.extension.sendRequest(
-    MIGEMO_ID,
-    {"action": "getRegExpString", "query": query},
-    function(response) {
-      clearTimeout(timer);
-      if (response.query !== query) return; // already typed next letter
-      if (response.query && !response.result) return start_search(query, retry + 1); // retry case 2. something went wrong on the server
-      re = new RegExp('(' + response.result + ')', 'i');
-      unhighlight();
-      highlight();
-      select_first_on_screen();
-      update_info();
-    }
-  )
+    chrome.extension.sendRequest(
+      MIGEMO_ID,
+      {"action": "getRegExpString", "query": query},
+      function(response) {
+        if (response.error) console.log(response.error);
+        clearTimeout(timer);
+        if (response.query !== query) return; // already typed next letter
+        if (response.query && !response.result) return start_search(query, retry + 1); // retry case 2. something went wrong on the server
+        re = new RegExp('(' + response.result + ')', 'i');
+        unhighlight();
+        highlight();
+        select_first_on_screen();
+        update_info();
+      }
+    )
+  }, 200);
 }
 
 var XPATH = '/html/body/descendant::text()[string-length(normalize-space(self::text())) > 0 and not(ancestor::textarea or ancestor::script or ancestor::style or ancestor::x:textarea or ancestor::x:script or ancestor::x:style) and not(ancestor::*[1][contains(concat(" ",normalize-space(@class)," "), " ' + PREFIX + 'found ")])]';
