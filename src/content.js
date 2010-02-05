@@ -2,7 +2,6 @@
 (function() {
 
 if (document.contentType && !/html/i.test(document.contentType)) return;
-
 window.addEventListener('MigemoFIP.Activate', show_searchbar, false);
 window.addEventListener('MigemoFIP.Inactivate', hide_searchbar, false);
 window.addEventListener('MigemoFIP.Next', function() {cycle(1)}, false);
@@ -33,6 +32,7 @@ window.addEventListener('keydown', function(e) {
   }
 }, false);
 */
+
 
 var PREFIX = 'migemo-find-in-page-';
 
@@ -259,7 +259,7 @@ function cycle(n) {
       mover.release();
     }
     update_info();
-  }, 40);
+  }, 20);
 }
 
 function Mover() {
