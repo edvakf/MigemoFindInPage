@@ -8,6 +8,7 @@ font.migemo-find-in-page-found {
 #migemo-find-in-page-selected {
   /*-webkit-transition: background-color 0.01s ease-out;*/
   background-color: #ff9632;
+  -webkit-box-shadow: 3px 3px 6px #888888;
 }
 
 #migemo-find-in-page-box {
