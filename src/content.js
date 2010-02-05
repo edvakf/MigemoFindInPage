@@ -33,7 +33,6 @@ window.addEventListener('keydown', function(e) {
 }, false);
 */
 
-
 var PREFIX = 'migemo-find-in-page-';
 
 function show_searchbar() {
@@ -240,6 +239,7 @@ function cycle(n) {
   }
   hl = highlights[i = (i + n + len) % len];
   hl.id = PREFIX + 'selected';
+  selected = hl;
 
   clearTimeout(timer);
   timer = setTimeout(function() {
