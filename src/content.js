@@ -9,31 +9,39 @@ window.addEventListener('MigemoFIP.Next', function() {cycle(1)}, false);
 window.addEventListener('MigemoFIP.Previous', function() {cycle(-1)}, false);
 */
 
+var PREFIX = 'migemo-find-in-page-';
+
 var ACTIVATE_KEY = 191; // backslash
-var HIDE_KEY = 186; // semicolon
-var FIND_NEXT_KEY = 40; // down
-var FIND_PREV_KEY = 38; // up
+var HIDE_KEY = 10077; // C-m
+var FIND_NEXT_KEY = 10078; // C-n
+var FIND_PREV_KEY = 10080; // C-p
 window.addEventListener('keydown', function(e) {
   var ele = document.activeElement;
   var tag = ele.tagName.toLowerCase();
-  if (e.keyCode == ACTIVATE_KEY && 
-    !(tag === 'textarea' || 
-      (tag === 'input' && !/^(hidden|checkbox|checkbox|file|submit|image|reset|button)$/.test(ele.type)))) {
-        e.preventDefault();
-        show_searchbar();
-  } else if (e.keyCode === HIDE_KEY) {
+  //var onsearchbox = (ele.id === PREFIX + 'input');
+  var oninput = (tag === 'textarea' || 
+      (tag === 'input' && !/^(hidden|checkbox|checkbox|file|submit|image|reset|button)$/.test(ele.type)));
+
+  var key = e.keyCode;
+  if (e.shiftKey) key += 1000;
+  if (e.ctrlKey) key += 10000;
+  if (e.metaKey) key += 100000;
+  if (e.altKey) key += 1000000;
+
+  if (key === ACTIVATE_KEY && !oninput) {
+    e.preventDefault();
+    show_searchbar();
+  } else if (key === HIDE_KEY) {
     e.preventDefault();
     hide_searchbar(); 
-  } else if (e.keyCode === FIND_NEXT_KEY) {
+  } else if (key === FIND_NEXT_KEY) {
     e.preventDefault();
     cycle(1);
-  } else if (e.keyCode === FIND_PREV_KEY) {
+  } else if (key === FIND_PREV_KEY) {
     e.preventDefault();
     cycle(-1);
   }
 }, false);
-
-var PREFIX = 'migemo-find-in-page-';
 
 function show_searchbar() {
   var div = document.getElementById(PREFIX + 'box');
@@ -156,7 +164,12 @@ function unhighlight(focus) {
   range.setStartBefore(text);
   range.setEndAfter(text);
   window.getSelection().addRange(range);
-  p.focus(); // focus if p is an anchor
+  do {
+    if (/^a(rea)?$/i.test(p.nodeName)) {
+      p.focus(); // focus if p is an anchor
+      break;
+    }
+  } while (p = p.parentNode);
 
   document.body.normalize();
 }
