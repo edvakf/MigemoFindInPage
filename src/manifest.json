@@ -8,5 +8,5 @@
   } ],
   "description": "Find in page enhanced using Migemo",
   "permissions": [ "http://*/*", "https://*/*" ],
-  "version": "0.0.1"
+  "version": "0.0.2"
 }

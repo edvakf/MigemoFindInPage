@@ -13,8 +13,8 @@ var PREFIX = 'migemo-find-in-page-';
 
 var ACTIVATE_KEY = 191; // slash
 var HIDE_KEY = 10077; // C-m
-var FIND_NEXT_KEY = 10190; // C-/
-var FIND_PREV_KEY = 10188; // C-.
+var FIND_NEXT_KEY = 10190; // C-.
+var FIND_PREV_KEY = 10188; // C-,
 window.addEventListener('keydown', function(e) {
   var ele = document.activeElement;
   var tag = ele.tagName.toLowerCase();
