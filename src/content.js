@@ -11,10 +11,10 @@ window.addEventListener('MigemoFIP.Previous', function() {cycle(-1)}, false);
 
 var PREFIX = 'migemo-find-in-page-';
 
-var ACTIVATE_KEY = 191; // backslash
+var ACTIVATE_KEY = 191; // slash
 var HIDE_KEY = 10077; // C-m
-var FIND_NEXT_KEY = 10078; // C-n
-var FIND_PREV_KEY = 10080; // C-p
+var FIND_NEXT_KEY = 10190; // C-/
+var FIND_PREV_KEY = 10188; // C-.
 window.addEventListener('keydown', function(e) {
   var ele = document.activeElement;
   var tag = ele.tagName.toLowerCase();
